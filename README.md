@@ -21,6 +21,24 @@ En prod (VPS), passer par des variables d'environnement : `Discord__Token`, `Rea
 dotnet run --project src/SianaBot
 ```
 
+## Déploiement
+
+Chaque **release publiée** sur GitHub déclenche [`deploy.yml`](.github/workflows/deploy.yml) :
+build de l'image `ghcr.io/ilyanfraimbault/siana-bot:<tag>` (+ `latest`), puis redéploiement du projet
+Docker Manager `siana` sur le VPS Hostinger avec [`compose.prod.yaml`](compose.prod.yaml).
+Une pre-release publie l'image (tag `prerelease`) sans déployer.
+
+Configuration du repo GitHub (Settings → Secrets and variables → Actions) :
+
+| Type     | Nom                 | Valeur                                              |
+| -------- | ------------------- | --------------------------------------------------- |
+| variable | `HOSTINGER_VM_ID`   | id du VPS dans l'API Hostinger                      |
+| secret   | `HOSTINGER_API_KEY` | token API du compte Hostinger (hPanel → Compte → API) |
+| secret   | `DISCORD_TOKEN`     | token du bot                                        |
+
+L'image est privée : le VPS doit être connecté à GHCR (`docker login ghcr.io`) avec un token `read:packages`.
+Les reaction roles sont stockés dans le volume Docker `siana-data`.
+
 ## Fonctionnalités
 
 ### Reaction role

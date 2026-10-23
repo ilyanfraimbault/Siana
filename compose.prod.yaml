@@ -1,0 +1,20 @@
+services:
+  bot:
+    image: ghcr.io/ilyanfraimbault/siana-bot:${IMAGE_TAG:-latest}
+    container_name: siana-bot
+    restart: unless-stopped
+    # Sans init, dotnet en PID 1 reste figé après un crash au lieu de sortir (et le restart ne joue jamais).
+    init: true
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      Discord__Token: ${DISCORD_TOKEN:?set DISCORD_TOKEN before deploying}
+    volumes:
+      - siana-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  siana-data:
