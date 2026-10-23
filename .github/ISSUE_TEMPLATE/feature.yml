@@ -1,0 +1,24 @@
+name: Idée de feature
+description: Proposer une nouvelle fonctionnalité pour le bot
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Le besoin
+      description: Quel problème ça règle pour la promo ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Ce que tu proposes
+      description: Les commandes, le comportement attendu, les permissions nécessaires.
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: Je veux bien l'implémenter moi-même
