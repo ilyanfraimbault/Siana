@@ -110,8 +110,8 @@ public static class SianaCli
             case ("nick", "sync"):
                 if (!services.GetRequiredService<IOptions<NicknameConventionOptions>>().Value.Enabled)
                     throw new InvalidOperationException("Convention de pseudo désactivée (NicknameConvention:GuildId / RoleId).");
-                var (added, removed) = await services.GetRequiredService<NicknameConventionService>().SyncAsync();
-                Console.WriteLine($"{added} rôle(s) ajouté(s), {removed} retiré(s).");
+                var (added, removed, restored, suspended) = await services.GetRequiredService<NicknameConventionService>().SyncAsync();
+                Console.WriteLine($"{added} rôle(s) ajouté(s), {removed} retiré(s), {restored} choix activé(s), {suspended} mis en attente.");
                 return 0;
 
             default:

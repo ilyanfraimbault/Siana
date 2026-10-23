@@ -14,6 +14,7 @@ COPY --from=build /app/publish .
 # Volume des données persistantes (reaction roles). Le volume nommé hérite de cet owner.
 RUN mkdir -p /data && chown app:app /data
 ENV ReactionRoles__StoragePath=/data/reaction-roles.json
+ENV NicknameConvention__PendingStoragePath=/data/pending-roles.json
 VOLUME /data
 
 # CLI d'administration : docker exec siana-bot siana <commande>

@@ -1,5 +1,6 @@
 using Discord;
 using Discord.Rest;
+using SianaBot.NicknameConvention;
 
 namespace SianaBot.ReactionRoles;
 
@@ -9,6 +10,7 @@ public sealed record PanelEntry(IEmote Emote, ulong RoleId, string Label);
 public sealed class ReactionRoleService(
     DiscordRestClient rest,
     ReactionRoleStore store,
+    NicknameConventionService nicknameConvention,
     ILogger<ReactionRoleService> logger)
 {
     private const int MaxReactionUsers = 1000;
@@ -24,6 +26,10 @@ public sealed class ReactionRoleService(
 
         var member = await rest.GetGuildUserAsync(reactionRole.GuildId, userId);
         if (member is null)
+            return true;
+
+        // Rôle réservé aux pseudos conformes : le choix passe en attente.
+        if (await nicknameConvention.TryToggleReservedAsync(member, reactionRole.RoleId))
             return true;
 
         if (member.RoleIds.Contains(reactionRole.RoleId))

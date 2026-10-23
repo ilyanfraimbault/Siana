@@ -14,6 +14,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<ReactionRoleStore>();
         services.AddSingleton<ReactionRoleService>();
+        services.AddSingleton<PendingRoleStore>();
         services.AddSingleton<NicknameConventionService>();
         return services;
     }

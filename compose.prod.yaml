@@ -12,6 +12,9 @@ services:
       # Nécessite l'intent Server Members activé dans le Developer Portal.
       NicknameConvention__GuildId: "1561647745507528847"
       NicknameConvention__RoleId: "1563195063016628437"
+      # Filières DL et SR : réservées aux Membres (les salons INFRES n'ouvrent qu'avec l'une d'elles).
+      NicknameConvention__ReservedRoleIds__0: "1563171919547605043"
+      NicknameConvention__ReservedRoleIds__1: "1563171987512361170"
     volumes:
       - siana-data:/data
     logging:

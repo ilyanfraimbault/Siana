@@ -44,9 +44,11 @@ public sealed class NicknameConventionHandler(
     {
         try
         {
-            var (added, removed) = await service.SyncAsync();
-            if (added + removed > 0)
-                logger.LogInformation("Convention de pseudo : {Added} rôle(s) ajouté(s), {Removed} retiré(s)", added, removed);
+            var (added, removed, restored, suspended) = await service.SyncAsync();
+            if (added + removed + restored + suspended > 0)
+                logger.LogInformation(
+                    "Convention de pseudo : {Added} rôle(s) ajouté(s), {Removed} retiré(s), {Restored} choix activé(s), {Suspended} mis en attente",
+                    added, removed, restored, suspended);
         }
         catch (Exception ex)
         {
