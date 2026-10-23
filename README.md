@@ -63,6 +63,11 @@ Si `NicknameConvention:GuildId` et `NicknameConvention:RoleId` sont configurés,
 `Prénom N` ou `Prénom N.` (lettres uniquement, prénoms composés acceptés), et le retire sinon. Il le vérifie à l'arrivée d'un membre,
 à chaque changement de pseudo et au démarrage. Il faut activer l'intent **Server Members** dans le Developer Portal.
 
+Les rôles listés dans `NicknameConvention:ReservedRoleIds` (les filières DL et SR) sont **réservés aux membres conformes** :
+un choix fait sans pseudo conforme est mis en attente (le bot prévient en DM) et activé dès que le pseudo est corrigé ;
+perdre le rôle de la convention remet ces rôles en attente. Comme les salons INFRES ne s'ouvrent qu'avec DL ou SR,
+il faut à la fois un pseudo conforme et une filière pour y accéder ; sinon, seul #roles est visible.
+
 ## Administration (CLI)
 
 Le binaire sert aussi de CLI, qui passe par l'API REST avec le token du bot. En prod, dans le conteneur :
