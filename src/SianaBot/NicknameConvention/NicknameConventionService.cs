@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using Discord;
-using Discord.Net;
 using Discord.Rest;
 using Microsoft.Extensions.Options;
 
@@ -95,8 +94,8 @@ public sealed partial class NicknameConventionService(
     }
 
     /// <summary>
-    /// Clic sur un rôle réservé par quelqu'un sans pseudo conforme : le choix est mis (ou retiré) de l'attente
-    /// et la personne est prévenue en DM. Renvoie false si le clic doit être traité normalement.
+    /// Clic sur un rôle réservé par quelqu'un sans pseudo conforme : le choix est mis (ou retiré) de l'attente.
+    /// Renvoie false si le clic doit être traité normalement.
     /// </summary>
     public async Task<bool> TryToggleReservedAsync(IGuildUser member, ulong roleId)
     {
@@ -108,16 +107,9 @@ public sealed partial class NicknameConventionService(
             return false;
 
         if (pending.For(member.GuildId, member.Id).Contains(roleId))
-        {
             await pending.RemoveAsync(member.GuildId, member.Id, [roleId]);
-            await TryDirectMessageAsync(member, "Ton choix en attente est annulé.");
-        }
         else
-        {
             await pending.AddAsync(member.GuildId, member.Id, [roleId]);
-            await TryDirectMessageAsync(member,
-                "✅ Ton choix est noté. Il sera activé dès que ton pseudo suivra la convention **Prénom N.** (ex. `Ilyan F.`).");
-        }
         return true;
     }
 
@@ -148,17 +140,5 @@ public sealed partial class NicknameConventionService(
             }
         }
         return (added, removed, restored, suspended);
-    }
-
-    private async Task TryDirectMessageAsync(IUser user, string text)
-    {
-        try
-        {
-            await user.SendMessageAsync(text);
-        }
-        catch (HttpException)
-        {
-            // DM fermés : tant pis, le choix est quand même enregistré.
-        }
     }
 }
