@@ -16,5 +16,8 @@ RUN mkdir -p /data && chown app:app /data
 ENV ReactionRoles__StoragePath=/data/reaction-roles.json
 VOLUME /data
 
+# CLI d'administration : docker exec siana-bot siana <commande>
+RUN printf '#!/bin/sh\nexec dotnet /app/SianaBot.dll "$@"\n' > /usr/local/bin/siana && chmod +x /usr/local/bin/siana
+
 USER app
 ENTRYPOINT ["dotnet", "SianaBot.dll"]

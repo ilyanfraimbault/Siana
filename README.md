@@ -50,3 +50,33 @@ Commandes réservées aux membres ayant **Gérer les rôles** :
 - `/reactionrole list`
 
 Le rôle du bot doit être placé **au-dessus** des rôles qu'il attribue. Les associations sont stockées dans `data/reaction-roles.json`.
+
+Deux modes :
+- **persistant** (`/reactionrole add`) : le rôle suit la réaction ;
+- **toggle** (panneaux publiés par `siana roles panel`) : un clic donne le rôle, un second le retire, et le bot retire aussitôt la réaction. Il faut au bot la permission **Gérer les messages** dans le salon.
+
+À chaque démarrage, le bot rattrape les réactions posées pendant qu'il était hors ligne.
+
+### Convention de pseudo
+
+Si `NicknameConvention:GuildId` et `NicknameConvention:RoleId` sont configurés, le bot donne ce rôle aux membres dont le pseudo est
+`Prénom N` ou `Prénom N.` (lettres uniquement, prénoms composés acceptés), et le retire sinon. Il le vérifie à l'arrivée d'un membre,
+à chaque changement de pseudo et au démarrage. Il faut activer l'intent **Server Members** dans le Developer Portal.
+
+## Administration (CLI)
+
+Le binaire sert aussi de CLI, qui passe par l'API REST avec le token du bot. En prod, dans le conteneur :
+
+```bash
+ssh truemain-prod docker exec siana-bot siana help
+```
+
+| Commande | Effet |
+| --- | --- |
+| `siana roles list` | liste les reaction roles suivis |
+| `siana roles sync` | rattrape les réactions posées pendant une coupure |
+| `siana roles grant --message <lien> --emoji <e> --role <id>` | donne le rôle à ceux qui ont réagi sur un message non suivi |
+| `siana roles panel --channel <id> --title <t> [--description <d>] [--color <#hex>] --entry "<e>\|<id rôle>\|<libellé>"...` | publie un embed de choix de rôles (toggle) |
+| `siana nick check <pseudo>` / `siana nick sync` | teste un pseudo / applique la convention à tout le serveur |
+
+En local : `dotnet run --project src/SianaBot -- roles list`.
