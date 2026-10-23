@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.RegularExpressions;
 using Discord;
 using Discord.Interactions;
 using Discord.Net;
@@ -9,7 +8,7 @@ namespace SianaBot.ReactionRoles;
 [Group("reactionrole", "Rôles attribués par réaction")]
 [CommandContextType(InteractionContextType.Guild)]
 [DefaultMemberPermissions(GuildPermission.ManageRoles)]
-public sealed partial class ReactionRoleModule(ReactionRoleStore store) : InteractionModuleBase<SocketInteractionContext>
+public sealed class ReactionRoleModule(ReactionRoleStore store) : InteractionModuleBase<SocketInteractionContext>
 {
     [SlashCommand("add", "Associe un emoji sur un message à un rôle")]
     public async Task AddAsync(
@@ -117,19 +116,10 @@ public sealed partial class ReactionRoleModule(ReactionRoleStore store) : Intera
     /// <summary>Accepte un lien de message de ce serveur, ou un ID de message du salon courant.</summary>
     private bool TryParseMessageReference(string reference, out ulong channelId, out ulong messageId)
     {
-        reference = reference.Trim();
-        var match = MessageLinkRegex().Match(reference);
-        if (match.Success && ulong.Parse(match.Groups[1].Value) == Context.Guild.Id)
-        {
-            channelId = ulong.Parse(match.Groups[2].Value);
-            messageId = ulong.Parse(match.Groups[3].Value);
-            return true;
-        }
+        if (MessageLinks.TryParse(reference, out var guildId, out channelId, out messageId))
+            return guildId == Context.Guild.Id;
 
         channelId = Context.Channel.Id;
-        return ulong.TryParse(reference, out messageId);
+        return ulong.TryParse(reference.Trim(), out messageId);
     }
-
-    [GeneratedRegex(@"channels/(\d+)/(\d+)/(\d+)")]
-    private static partial Regex MessageLinkRegex();
 }

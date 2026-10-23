@@ -8,6 +8,10 @@ services:
     environment:
       DOTNET_ENVIRONMENT: Production
       Discord__Token: ${DISCORD_TOKEN:?set DISCORD_TOKEN before deploying}
+      # Rôle « Membre » du serveur INFRES19, donné aux pseudos « Prénom N. ».
+      # Nécessite l'intent Server Members activé dans le Developer Portal.
+      NicknameConvention__GuildId: "1561647745507528847"
+      NicknameConvention__RoleId: "1563195063016628437"
     volumes:
       - siana-data:/data
     logging:

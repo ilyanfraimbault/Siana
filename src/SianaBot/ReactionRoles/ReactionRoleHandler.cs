@@ -6,37 +6,92 @@ namespace SianaBot.ReactionRoles;
 public sealed class ReactionRoleHandler(
     DiscordSocketClient client,
     ReactionRoleStore store,
+    ReactionRoleService service,
     ILogger<ReactionRoleHandler> logger)
 {
+    private readonly SemaphoreSlim _syncLock = new(1, 1);
+
     public void Attach()
     {
-        client.ReactionAdded += (message, _, reaction) => HandleAsync(message.Id, reaction, add: true);
-        client.ReactionRemoved += (message, _, reaction) => HandleAsync(message.Id, reaction, add: false);
+        // Hors de la gateway : un rate limit REST ne doit pas bloquer la réception des events.
+        client.ReactionAdded += (message, channel, reaction) =>
+        {
+            _ = Task.Run(() => OnReactionAddedAsync(message, reaction));
+            return Task.CompletedTask;
+        };
+        client.ReactionRemoved += (message, channel, reaction) =>
+        {
+            _ = Task.Run(() => OnReactionRemovedAsync(message.Id, reaction));
+            return Task.CompletedTask;
+        };
+        // À chaque (re)connexion, on rattrape les réactions posées pendant la coupure.
+        client.Ready += () =>
+        {
+            _ = Task.Run(SyncAsync);
+            return Task.CompletedTask;
+        };
     }
 
-    private async Task HandleAsync(ulong messageId, SocketReaction reaction, bool add)
+    private async Task OnReactionAddedAsync(Cacheable<IUserMessage, ulong> message, SocketReaction reaction)
     {
-        if (reaction.UserId == client.CurrentUser.Id)
-            return;
-        if (reaction.User.IsSpecified && reaction.User.Value.IsBot)
-            return;
-
-        var reactionRole = store.Find(messageId, Emotes.Key(reaction.Emote));
+        var reactionRole = Find(message.Id, reaction);
         if (reactionRole is null)
             return;
 
         try
         {
-            // Passage par le REST : pas besoin du cache des membres (ni de l'intent privilégié GuildMembers).
-            if (add)
-                await client.Rest.AddRoleAsync(reactionRole.GuildId, reaction.UserId, reactionRole.RoleId);
-            else
-                await client.Rest.RemoveRoleAsync(reactionRole.GuildId, reaction.UserId, reactionRole.RoleId);
+            if (await service.OnReactionAddedAsync(reactionRole, reaction.UserId))
+                await (await message.GetOrDownloadAsync()).RemoveReactionAsync(reaction.Emote, reaction.UserId);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Impossible de {Action} le rôle {RoleId} à {UserId} sur {GuildId}",
-                add ? "donner" : "retirer", reactionRole.RoleId, reaction.UserId, reactionRole.GuildId);
+            logger.LogWarning(ex, "Reaction role {RoleId} non appliqué à {UserId}", reactionRole.RoleId, reaction.UserId);
+        }
+    }
+
+    private async Task OnReactionRemovedAsync(ulong messageId, SocketReaction reaction)
+    {
+        var reactionRole = Find(messageId, reaction);
+        if (reactionRole is null)
+            return;
+
+        try
+        {
+            await service.OnReactionRemovedAsync(reactionRole, reaction.UserId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Reaction role {RoleId} non retiré à {UserId}", reactionRole.RoleId, reaction.UserId);
+        }
+    }
+
+    private ReactionRole? Find(ulong messageId, SocketReaction reaction)
+    {
+        if (reaction.UserId == client.CurrentUser.Id)
+            return null;
+        if (reaction.User.IsSpecified && reaction.User.Value.IsBot)
+            return null;
+
+        return store.Find(messageId, Emotes.Key(reaction.Emote));
+    }
+
+    private async Task SyncAsync()
+    {
+        if (!await _syncLock.WaitAsync(0))
+            return;
+        try
+        {
+            var processed = await service.SyncAsync();
+            if (processed > 0)
+                logger.LogInformation("Rattrapage des reaction roles : {Count} réaction(s) traitée(s)", processed);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Rattrapage des reaction roles échoué");
+        }
+        finally
+        {
+            _syncLock.Release();
         }
     }
 }
