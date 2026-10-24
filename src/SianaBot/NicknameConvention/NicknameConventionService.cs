@@ -41,9 +41,9 @@ public sealed partial class NicknameConventionService(
 {
     /// <summary>
     /// Un prénom en lettres (accents et prénoms composés « Jean-Marc » acceptés), une espace,
-    /// l'initiale du nom, un point facultatif. Pas de chiffre, pas d'autre caractère.
+    /// 1 à 4 lettres du nom (pour les noms composés : « Ilyan FR. »), un point facultatif. Pas de chiffre, pas d'autre caractère.
     /// </summary>
-    [GeneratedRegex(@"^\p{L}+(?:-\p{L}+)* \p{L}\.?$")]
+    [GeneratedRegex(@"^\p{L}+(?:-\p{L}+)* \p{L}{1,4}\.?$")]
     private static partial Regex ConventionRegex();
 
     public static bool Matches(string? name) => name is not null && ConventionRegex().IsMatch(name);

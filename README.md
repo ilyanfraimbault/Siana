@@ -60,7 +60,7 @@ Deux modes :
 ### Convention de pseudo
 
 Si `NicknameConvention:GuildId` et `NicknameConvention:RoleId` sont configurés, le bot donne ce rôle aux membres dont le pseudo est
-`Prénom N` ou `Prénom N.` (lettres uniquement, prénoms composés acceptés), et le retire sinon. Il le vérifie à l'arrivée d'un membre,
+`Prénom N` ou `Prénom N.`, avec 1 à 4 lettres du nom pour les noms composés (lettres uniquement, prénoms composés acceptés), et le retire sinon. Il le vérifie à l'arrivée d'un membre,
 à chaque changement de pseudo et au démarrage. Il faut activer l'intent **Server Members** dans le Developer Portal.
 
 Les rôles listés dans `NicknameConvention:ReservedRoleIds` (les filières DL et SR) sont **réservés aux membres conformes** :
