@@ -68,6 +68,19 @@ un choix fait sans pseudo conforme est mis en attente et activé dès que le pse
 perdre le rôle de la convention remet ces rôles en attente. Comme les salons INFRES ne s'ouvrent qu'avec DL ou SR,
 il faut à la fois un pseudo conforme et une filière pour y accéder ; sinon, seul #roles est visible.
 
+### Logs de modération
+
+Si `ModerationLog:GuildId` est configuré, le bot publie dans un salon réservé aux admins un embed pour chaque
+ban, débannissement, kick, exclusion temporaire (timeout), mute ou sourdine vocale, et chaque rôle ajouté ou retiré.
+L'embed montre l'avatar du membre visé, la raison éventuelle, et en footer l'auteur de l'action avec son avatar.
+
+Les actions sont lues dans l'audit log du serveur : elles sont journalisées qu'elles soient faites depuis Discord,
+par un autre bot ou par Siana (reaction roles, convention de pseudo). Il faut au bot la permission **Voir les logs du serveur**.
+
+Le salon est `ModerationLog:ChannelId` s'il est renseigné ; sinon le bot cherche `#logs-moderation` (`ModerationLog:ChannelName`)
+et, s'il n'existe pas, le crée masqué à @everyone (seuls les administrateurs et le bot le voient), ce qui demande **Gérer les salons**.
+Renommer ce salon sans renseigner `ChannelId` en ferait créer un nouveau au prochain démarrage.
+
 ## Administration (CLI)
 
 Le binaire sert aussi de CLI, qui passe par l'API REST avec le token du bot. En prod, dans le conteneur :
