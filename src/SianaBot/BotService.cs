@@ -2,6 +2,7 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Options;
+using SianaBot.ModerationLog;
 using SianaBot.NicknameConvention;
 using SianaBot.ReactionRoles;
 
@@ -12,6 +13,7 @@ public sealed class BotService(
     InteractionService interactions,
     ReactionRoleHandler reactionRoles,
     NicknameConventionHandler nicknameConvention,
+    ModerationLogHandler moderationLog,
     IServiceProvider services,
     IOptions<DiscordOptions> options,
     ILogger<BotService> logger) : IHostedService
@@ -30,6 +32,7 @@ public sealed class BotService(
         interactions.InteractionExecuted += OnInteractionExecutedAsync;
         reactionRoles.Attach();
         nicknameConvention.Attach();
+        moderationLog.Attach();
 
         await interactions.AddModulesAsync(typeof(BotService).Assembly, services);
         await client.LoginAsync(TokenType.Bot, token);

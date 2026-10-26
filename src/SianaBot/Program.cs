@@ -4,6 +4,7 @@ using Discord.Rest;
 using Discord.WebSocket;
 using SianaBot;
 using SianaBot.Cli;
+using SianaBot.ModerationLog;
 using SianaBot.NicknameConvention;
 using SianaBot.ReactionRoles;
 
@@ -19,6 +20,10 @@ var nicknameConvention = builder.Configuration.GetSection(NicknameConventionOpti
 var intents = GatewayIntents.Guilds | GatewayIntents.GuildMessageReactions;
 if (nicknameConvention?.Enabled == true)
     intents |= GatewayIntents.GuildMembers;
+// GuildBans correspond à l'intent Guild Moderation (non privilégié), qui porte les entrées d'audit log.
+var moderationLog = builder.Configuration.GetSection(ModerationLogOptions.Section).Get<ModerationLogOptions>();
+if (moderationLog?.Enabled == true)
+    intents |= GatewayIntents.GuildBans;
 
 builder.Services.AddSingleton(new DiscordSocketConfig
 {
@@ -31,6 +36,7 @@ builder.Services.AddSingleton(sp => new InteractionService(sp.GetRequiredService
 
 builder.Services.AddSingleton<ReactionRoleHandler>();
 builder.Services.AddSingleton<NicknameConventionHandler>();
+builder.Services.AddSingleton<ModerationLogHandler>();
 
 builder.Services.AddHostedService<BotService>();
 
