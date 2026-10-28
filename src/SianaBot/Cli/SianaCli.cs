@@ -22,17 +22,18 @@ public static class SianaCli
               Rattrape les réactions posées pendant une coupure (le bot le fait aussi à chaque démarrage).
           roles grant --message <lien> --emoji <emoji> --role <id>
               Donne le rôle à tous ceux qui ont réagi avec cet emoji sur un message non suivi.
-          roles panel --channel <id> --title <titre> [--description <texte>] [--color <#RRGGBB>]
+          roles panel --channel <id> --title <titre> [--description <texte>] [--color <#RRGGBB>] [--exclusive]
                       --entry "<emoji>|<id du rôle>|<libellé>" [--entry ...]
-              Publie un embed de choix de rôles : un clic donne le rôle, un second le retire.
+              Publie un panneau de choix de rôles à boutons : un clic donne le rôle, un second le retire.
+              Avec --exclusive, prendre un rôle du panneau retire les autres.
               "\n" dans la description fait un retour à la ligne.
+          roles convert --message <lien> [--exclusive]
+              Remplace les réactions d'un ancien panneau par des boutons, sur le même message.
           nick check <pseudo>
               Teste un pseudo contre la convention « Prénom N. ».
           nick sync
               Applique la convention de pseudo à tous les membres.
         """;
-
-    private static readonly Color DefaultColor = new(0x8B5CF6);
 
     public static bool Handles(string[] args) => args.Length > 0 && args[0] is "roles" or "nick" or "help" or "--help";
 
@@ -102,9 +103,17 @@ public static class SianaCli
                     command.RequiredId("channel"),
                     command.Required("title"),
                     command.Optional("description")?.Replace("\\n", "\n"),
-                    command.Optional("color") is { } hex ? new Color(Convert.ToUInt32(hex.TrimStart('#'), 16)) : DefaultColor,
-                    entries);
+                    command.Optional("color") is { } hex ? new Color(Convert.ToUInt32(hex.TrimStart('#'), 16)) : RolePanel.DefaultColor,
+                    entries,
+                    command.Flag("exclusive"));
                 Console.WriteLine($"Panneau publié : {message.GetJumpUrl()}");
+                return 0;
+
+            case ("roles", "convert"):
+                if (!MessageLinks.TryParse(command.Required("message"), out _, out var panelChannelId, out var panelMessageId))
+                    throw new ArgumentException("--message doit être un lien de message Discord.");
+                var converted = await reactionRoles.ConvertPanelAsync(panelChannelId, panelMessageId, command.Flag("exclusive"));
+                Console.WriteLine($"Panneau converti en boutons : {converted.GetJumpUrl()}");
                 return 0;
 
             case ("nick", "sync"):
@@ -139,6 +148,9 @@ public static class SianaCli
 
 internal sealed record CliCommand(string Verb, string? Action, IReadOnlyList<string> Positional, ILookup<string, string> Options)
 {
+    /// <summary>Options sans valeur.</summary>
+    private static readonly HashSet<string> Flags = ["--exclusive"];
+
     public static CliCommand Parse(string[] args)
     {
         var positional = new List<string>();
@@ -148,6 +160,11 @@ internal sealed record CliCommand(string Verb, string? Action, IReadOnlyList<str
             if (!args[i].StartsWith("--") || args[i] == "--help")
             {
                 positional.Add(args[i]);
+                continue;
+            }
+            if (Flags.Contains(args[i]))
+            {
+                options.Add((args[i][2..], "true"));
                 continue;
             }
             if (i + 1 >= args.Length)
@@ -162,6 +179,8 @@ internal sealed record CliCommand(string Verb, string? Action, IReadOnlyList<str
     public IEnumerable<string> All(string name) => Options[name];
 
     public string? Optional(string name) => Options[name].LastOrDefault();
+
+    public bool Flag(string name) => Options.Contains(name);
 
     public string Required(string name) => Optional(name) ?? throw new ArgumentException($"Option --{name} manquante.");
 

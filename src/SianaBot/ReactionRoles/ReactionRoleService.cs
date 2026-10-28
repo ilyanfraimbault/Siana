@@ -4,7 +4,10 @@ using SianaBot.NicknameConvention;
 
 namespace SianaBot.ReactionRoles;
 
-public sealed record PanelEntry(IEmote Emote, ulong RoleId, string Label);
+public enum ToggleOutcome { Added, Removed, Pending, PendingCancelled }
+
+/// <param name="Replaced">Rôles exclusifs retirés pour faire place au nouveau.</param>
+public sealed record ToggleResult(ToggleOutcome Outcome, IReadOnlyList<ulong> Replaced);
 
 /// <summary>Logique des reaction roles, partagée entre le bot (events de la gateway) et la CLI (REST seul).</summary>
 public sealed class ReactionRoleService(
@@ -25,18 +28,31 @@ public sealed class ReactionRoleService(
         }
 
         var member = await rest.GetGuildUserAsync(reactionRole.GuildId, userId);
-        if (member is null)
-            return true;
+        if (member is not null)
+            await ToggleAsync(member, reactionRole.RoleId, []);
+        return true;
+    }
+
+    /// <summary>Inverse un rôle. Prendre le rôle retire ceux de <paramref name="exclusiveWith"/>.</summary>
+    public async Task<ToggleResult> ToggleAsync(IGuildUser member, ulong roleId, IReadOnlyCollection<ulong> exclusiveWith)
+    {
+        var others = exclusiveWith.Where(r => r != roleId).ToList();
 
         // Rôle réservé aux pseudos conformes : le choix passe en attente.
-        if (await nicknameConvention.TryToggleReservedAsync(member, reactionRole.RoleId))
-            return true;
+        if (await nicknameConvention.TryToggleReservedAsync(member, roleId, others) is { } pending)
+            return new ToggleResult(pending ? ToggleOutcome.Pending : ToggleOutcome.PendingCancelled, []);
 
-        if (member.RoleIds.Contains(reactionRole.RoleId))
-            await rest.RemoveRoleAsync(reactionRole.GuildId, userId, reactionRole.RoleId);
-        else
-            await rest.AddRoleAsync(reactionRole.GuildId, userId, reactionRole.RoleId);
-        return true;
+        if (member.RoleIds.Contains(roleId))
+        {
+            await member.RemoveRoleAsync(roleId);
+            return new ToggleResult(ToggleOutcome.Removed, []);
+        }
+
+        var replaced = others.Where(member.RoleIds.Contains).ToList();
+        await member.AddRoleAsync(roleId);
+        if (replaced.Count > 0)
+            await member.RemoveRolesAsync(replaced);
+        return new ToggleResult(ToggleOutcome.Added, replaced);
     }
 
     public async Task OnReactionRemovedAsync(ReactionRole reactionRole, ulong userId)
@@ -106,31 +122,56 @@ public sealed class ReactionRoleService(
         return granted;
     }
 
-    /// <summary>Publie un embed de choix de rôles en mode toggle et enregistre ses associations.</summary>
+    /// <summary>Publie un panneau de choix de rôles à boutons : un clic donne le rôle, un second le retire.</summary>
     public async Task<IUserMessage> CreatePanelAsync(
-        ulong channelId, string title, string? description, Color color, IReadOnlyList<PanelEntry> entries)
+        ulong channelId, string title, string? description, Color color, IReadOnlyList<PanelEntry> entries, bool exclusive)
     {
         var channel = await rest.GetChannelAsync(channelId) as ITextChannel
             ?? throw new InvalidOperationException($"Salon textuel {channelId} introuvable.");
 
-        var embed = new EmbedBuilder()
-            .WithTitle(title)
-            .WithDescription(description)
-            .WithColor(color)
-            .WithFooter("Ta réaction disparaît aussitôt : c'est normal, ton choix est pris en compte.");
-        foreach (var entry in entries)
-            embed.AddField($"{entry.Emote}  {entry.Label}", $"<@&{entry.RoleId}>", inline: true);
+        var (embed, components) = RolePanel.Build(title, description, color, entries, exclusive);
+        return await channel.SendMessageAsync(embed: embed, components: components, allowedMentions: AllowedMentions.None);
+    }
 
-        var message = await channel.SendMessageAsync(embed: embed.Build(), allowedMentions: AllowedMentions.None);
-        foreach (var entry in entries)
-            await message.AddReactionAsync(entry.Emote);
+    /// <summary>
+    /// Remplace les réactions d'un ancien panneau (publié par le bot) par des boutons, sur le même message,
+    /// et cesse de suivre ses réactions.
+    /// </summary>
+    public async Task<IUserMessage> ConvertPanelAsync(ulong channelId, ulong messageId, bool exclusive)
+    {
+        var message = await GetMessageAsync(channelId, messageId)
+            ?? throw new InvalidOperationException($"Message {messageId} introuvable.");
+        if (message.Author.Id != rest.CurrentUser.Id)
+            throw new InvalidOperationException("Ce message n'a pas été publié par le bot : impossible d'y mettre des boutons.");
 
-        await store.UpsertManyAsync(entries
-            .Select(e => new ReactionRole(
-                channel.GuildId, channel.Id, message.Id, Emotes.Key(e.Emote), e.Emote.ToString()!, e.RoleId, ReactionRoleMode.Toggle))
-            .ToList());
+        var tracked = store.All().Where(r => r.MessageId == messageId).ToList();
+        if (tracked.Count == 0)
+            throw new InvalidOperationException("Aucun reaction role suivi sur ce message.");
+
+        var embed = message.Embeds.FirstOrDefault();
+        var guild = await rest.GetGuildAsync(tracked[0].GuildId);
+        var entries = tracked
+            .Select(r => new PanelEntry(Emotes.Parse(r.Emote), r.RoleId, LabelFor(embed, r) ?? guild.GetRole(r.RoleId)?.Name ?? r.RoleId.ToString()))
+            .ToList();
+
+        var (panel, components) = RolePanel.Build(
+            embed?.Title, embed?.Description, embed?.Color ?? RolePanel.DefaultColor, entries, exclusive);
+        await message.ModifyAsync(m =>
+        {
+            m.Embed = panel;
+            m.Components = components;
+        });
+        await message.RemoveAllReactionsAsync();
+        await store.RemoveMessageAsync(messageId);
         return message;
     }
+
+    /// <summary>Libellé d'un ancien panneau : champ « emoji  libellé » dont la valeur mentionne le rôle.</summary>
+    private static string? LabelFor(IEmbed? embed, ReactionRole reactionRole) =>
+        embed?.Fields.FirstOrDefault(f => f.Value == $"<@&{reactionRole.RoleId}>") is { } field
+            && field.Name.Replace(reactionRole.Emote, "").Trim() is { Length: > 0 } label
+            ? label
+            : null;
 
     private async Task<IUserMessage?> GetMessageAsync(ulong channelId, ulong messageId) =>
         await rest.GetChannelAsync(channelId) is IMessageChannel channel
