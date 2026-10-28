@@ -30,4 +30,7 @@ public sealed class ReactionRoleStore(IOptions<ReactionRoleOptions> options)
 
     public Task<bool> RemoveAsync(ulong messageId, string emoteKey) =>
         _store.MutateAsync(items => items.RemoveAll(r => r.MessageId == messageId && r.EmoteKey == emoteKey) > 0);
+
+    public Task<bool> RemoveMessageAsync(ulong messageId) =>
+        _store.MutateAsync(items => items.RemoveAll(r => r.MessageId == messageId) > 0);
 }

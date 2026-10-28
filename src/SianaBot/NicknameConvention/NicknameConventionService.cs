@@ -94,22 +94,28 @@ public sealed partial class NicknameConventionService(
     }
 
     /// <summary>
-    /// Clic sur un rôle réservé par quelqu'un sans pseudo conforme : le choix est mis (ou retiré) de l'attente.
-    /// Renvoie false si le clic doit être traité normalement.
+    /// Clic sur un rôle réservé par quelqu'un sans pseudo conforme : le choix est mis (ou retiré) de l'attente,
+    /// et mettre un choix en attente en retire les rôles de <paramref name="exclusiveWith"/>.
+    /// Renvoie true s'il est désormais en attente, false s'il n'y est plus, null si le clic doit être traité normalement.
     /// </summary>
-    public async Task<bool> TryToggleReservedAsync(IGuildUser member, ulong roleId)
+    public async Task<bool?> TryToggleReservedAsync(IGuildUser member, ulong roleId, IReadOnlyCollection<ulong> exclusiveWith)
     {
         var settings = options.Value;
         if (!settings.Enabled
             || member.GuildId != settings.GuildId
             || !settings.ReservedRoleIds.Contains(roleId)
             || member.RoleIds.Contains(settings.RoleId!.Value))
-            return false;
+            return null;
 
         if (pending.For(member.GuildId, member.Id).Contains(roleId))
+        {
             await pending.RemoveAsync(member.GuildId, member.Id, [roleId]);
-        else
-            await pending.AddAsync(member.GuildId, member.Id, [roleId]);
+            return false;
+        }
+
+        if (exclusiveWith.Count > 0)
+            await pending.RemoveAsync(member.GuildId, member.Id, exclusiveWith);
+        await pending.AddAsync(member.GuildId, member.Id, [roleId]);
         return true;
     }
 

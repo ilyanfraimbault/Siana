@@ -2,12 +2,15 @@ using System.Text;
 using Discord;
 using Discord.Interactions;
 using Discord.Net;
+using Discord.WebSocket;
 
 namespace SianaBot.ReactionRoles;
 
 [Group("reactionrole", "Rôles attribués par réaction")]
 [CommandContextType(InteractionContextType.Guild)]
 [DefaultMemberPermissions(GuildPermission.ManageRoles)]
+// DefaultMemberPermissions n'est qu'un défaut, modifiable dans les paramètres d'intégration du serveur.
+[RequireManageRoles]
 public sealed class ReactionRoleModule(ReactionRoleStore store) : InteractionModuleBase<SocketInteractionContext>
 {
     [SlashCommand("add", "Associe un emoji sur un message à un rôle")]
@@ -30,6 +33,13 @@ public sealed class ReactionRoleModule(ReactionRoleStore store) : InteractionMod
         if (role.Position >= bot.Hierarchy)
         {
             await RespondAsync($"❌ Mon rôle doit être placé au-dessus de {role.Mention} dans les paramètres du serveur.",
+                ephemeral: true, allowedMentions: AllowedMentions.None);
+            return;
+        }
+        // Mêmes règles que Discord : on ne distribue pas un rôle égal ou supérieur au sien (sauf propriétaire).
+        if (role.Position >= ((SocketGuildUser)Context.User).Hierarchy)
+        {
+            await RespondAsync($"❌ Tu ne peux pas attribuer {role.Mention} : il doit être sous ton rôle le plus haut.",
                 ephemeral: true, allowedMentions: AllowedMentions.None);
             return;
         }
@@ -122,4 +132,9 @@ public sealed class ReactionRoleModule(ReactionRoleStore store) : InteractionMod
         channelId = Context.Channel.Id;
         return ulong.TryParse(reference.Trim(), out messageId);
     }
+}
+
+internal sealed class RequireManageRolesAttribute() : RequireUserPermissionAttribute(Discord.GuildPermission.ManageRoles)
+{
+    public override string ErrorMessage => "Il te faut la permission **Gérer les rôles**.";
 }

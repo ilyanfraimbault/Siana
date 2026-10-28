@@ -51,11 +51,17 @@ Commandes réservées aux membres ayant **Gérer les rôles** :
 
 Le rôle du bot doit être placé **au-dessus** des rôles qu'il attribue. Les associations sont stockées dans `data/reaction-roles.json`.
 
-Deux modes :
-- **persistant** (`/reactionrole add`) : le rôle suit la réaction ;
-- **toggle** (panneaux publiés par `siana roles panel`) : un clic donne le rôle, un second le retire, et le bot retire aussitôt la réaction. Il faut au bot la permission **Gérer les messages** dans le salon.
+Le rôle suit la réaction : réagir le donne, retirer sa réaction l'enlève. À chaque démarrage, le bot rattrape les réactions
+posées pendant qu'il était hors ligne.
 
-À chaque démarrage, le bot rattrape les réactions posées pendant qu'il était hors ligne.
+### Panneaux de rôles à boutons
+
+`siana roles panel` publie un embed avec un bouton par rôle : un clic donne le rôle, un second le retire, et le bot
+confirme par un message visible du seul membre. Avec `--exclusive`, prendre un rôle du panneau retire les autres
+(le panneau des filières : on ne peut pas avoir DL et SR en même temps). Les boutons portent leur rôle, rien n'est stocké.
+
+Les anciens panneaux à réactions (mode toggle) se convertissent sur place avec `siana roles convert --message <lien> [--exclusive]` :
+le message garde son lien, ses réactions sont retirées (il faut **Gérer les messages**) et le bot cesse de les suivre.
 
 ### Convention de pseudo
 
@@ -100,7 +106,8 @@ ssh truemain-prod docker exec siana-bot siana help
 | `siana roles list` | liste les reaction roles suivis |
 | `siana roles sync` | rattrape les réactions posées pendant une coupure |
 | `siana roles grant --message <lien> --emoji <e> --role <id>` | donne le rôle à ceux qui ont réagi sur un message non suivi |
-| `siana roles panel --channel <id> --title <t> [--description <d>] [--color <#hex>] --entry "<e>\|<id rôle>\|<libellé>"...` | publie un embed de choix de rôles (toggle) |
+| `siana roles panel --channel <id> --title <t> [--description <d>] [--color <#hex>] [--exclusive] --entry "<e>\|<id rôle>\|<libellé>"...` | publie un panneau de rôles à boutons |
+| `siana roles convert --message <lien> [--exclusive]` | remplace les réactions d'un ancien panneau par des boutons |
 | `siana nick check <pseudo>` / `siana nick sync` | teste un pseudo / applique la convention à tout le serveur |
 
 En local : `dotnet run --project src/SianaBot -- roles list`.
