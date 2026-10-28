@@ -81,6 +81,12 @@ Le salon est `ModerationLog:ChannelId` s'il est renseigné ; sinon le bot cherch
 et, s'il n'existe pas, le crée masqué à @everyone (seuls les administrateurs et le bot le voient), ce qui demande **Gérer les salons**.
 Renommer ce salon sans renseigner `ChannelId` en ferait créer un nouveau au prochain démarrage.
 
+### Messages privés
+
+`/mp user:<membre> message:<texte>` envoie `texte` en message privé au membre, de la part du bot.
+La commande est réservée par défaut aux administrateurs (ouvrable à d'autres rôles dans Paramètres du serveur → Intégrations),
+et chaque envoi est journalisé (expéditeur et destinataire). Si le membre bloque les MP du serveur, l'expéditeur en est averti.
+
 ## Administration (CLI)
 
 Le binaire sert aussi de CLI, qui passe par l'API REST avec le token du bot. En prod, dans le conteneur :
