@@ -93,16 +93,4 @@ public sealed class MessageLogHandler(
     /// <summary>Le serveur journalisé, si le salon en fait partie. Le salon de logs lui-même est ignoré.</summary>
     private SocketGuild? Watched(ulong channelId) =>
         channelId != channel.ChannelId && client.GetChannel(channelId) is SocketGuildChannel source ? channel.Watched(source.Guild.Id) : null;
-
-    /// <summary>Texte du message, suivi du nom de ses pièces jointes (leur lien expire avec le message).</summary>
-    private static string Content(IMessage message)
-    {
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(message.Content))
-            parts.Add(message.Content);
-        parts.AddRange(message.Attachments.Select(a => $"📎 `{a.Filename}`"));
-        if (message.Stickers.Count > 0)
-            parts.Add($"Sticker : {string.Join(", ", message.Stickers.Select(s => s.Name))}");
-        return parts.Count > 0 ? Truncate(string.Join('\n', parts)) : "*vide*";
-    }
 }

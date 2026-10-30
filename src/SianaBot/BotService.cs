@@ -18,6 +18,7 @@ public sealed class BotService(
     MessageLogHandler messageLog,
     CommandLogHandler commandLog,
     MemberLogHandler memberLog,
+    DirectMessageLogHandler directMessageLog,
     IServiceProvider services,
     IOptions<DiscordOptions> options,
     ILogger<BotService> logger) : IHostedService
@@ -41,6 +42,7 @@ public sealed class BotService(
         messageLog.Attach();
         commandLog.Attach();
         memberLog.Attach();
+        directMessageLog.Attach();
 
         await interactions.AddModulesAsync(typeof(BotService).Assembly, services);
         await client.LoginAsync(TokenType.Bot, token);

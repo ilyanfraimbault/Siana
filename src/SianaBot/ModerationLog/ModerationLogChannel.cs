@@ -114,6 +114,18 @@ public sealed class ModerationLogChannel(
     public static string DisplayName(IGuildUser? member, IUser? user) =>
         member?.DisplayName ?? user?.GlobalName ?? user?.Username ?? "Utilisateur inconnu";
 
+    /// <summary>Texte du message, suivi du nom de ses pièces jointes (leur lien expire avec le message).</summary>
+    public static string Content(IMessage message)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(message.Content))
+            parts.Add(message.Content);
+        parts.AddRange(message.Attachments.Select(a => $"📎 `{a.Filename}`"));
+        if (message.Stickers.Count > 0)
+            parts.Add($"Sticker : {string.Join(", ", message.Stickers.Select(s => s.Name))}");
+        return parts.Count > 0 ? Truncate(string.Join('\n', parts)) : "*vide*";
+    }
+
     /// <summary>Tronque <paramref name="text"/> à <paramref name="max"/> caractères (1024 : limite d'un champ d'embed).</summary>
     public static string Truncate(string text, int max = EmbedFieldBuilder.MaxFieldValueLength) =>
         text.Length <= max ? text : string.Concat(text.AsSpan(0, max - 1), "…");

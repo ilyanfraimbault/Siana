@@ -82,7 +82,8 @@ Si `ModerationLog:GuildId` est configuré, le bot publie dans un salon réservé
 - rôle ajouté ou retiré, et pseudo du serveur modifié ;
 - message modifié (avant / après) ou supprimé (contenu et pièces jointes), y compris les suppressions en masse ;
 - slash command du bot utilisée, avec ses arguments, le salon et l'erreur éventuelle ;
-- arrivée et départ d'un membre, et changement de profil Discord (nom d'utilisateur, nom affiché, avatar).
+- arrivée et départ d'un membre, et changement de profil Discord (nom d'utilisateur, nom affiché, avatar) ;
+- message privé reçu par le bot (réponse à un `/mp`), avec ses pièces jointes.
 
 L'embed montre l'avatar du membre concerné, la raison éventuelle, et en footer l'auteur de l'action avec son avatar.
 
@@ -102,6 +103,7 @@ Renommer ce salon sans renseigner `ChannelId` en ferait créer un nouveau au pro
 `/mp user:<membre> message:<texte>` envoie `texte` en message privé au membre, de la part du bot.
 La commande est réservée par défaut aux administrateurs (ouvrable à d'autres rôles dans Paramètres du serveur → Intégrations),
 et chaque envoi est journalisé (expéditeur et destinataire). Si le membre bloque les MP du serveur, l'expéditeur en est averti.
+Si les logs de modération sont activés, les MP que les membres envoient au bot (leurs réponses) y apparaissent.
 
 ## Administration (CLI)
 

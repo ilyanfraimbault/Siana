@@ -22,9 +22,11 @@ if (nicknameConvention?.Enabled == true)
     intents |= GatewayIntents.GuildMembers;
 // GuildBans correspond à l'intent Guild Moderation (non privilégié), qui porte les entrées d'audit log. Les logs de messages
 // demandent aussi Message Content, et ceux des arrivées / départs / profils Server Members : deux intents privilégiés.
+// DirectMessages (non privilégié) fait recevoir les MP envoyés au bot, journalisés eux aussi.
 var moderationLog = builder.Configuration.GetSection(ModerationLogOptions.Section).Get<ModerationLogOptions>();
 if (moderationLog?.Enabled == true)
-    intents |= GatewayIntents.GuildBans | GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.MessageContent;
+    intents |= GatewayIntents.GuildBans | GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.MessageContent
+        | GatewayIntents.DirectMessages;
 
 builder.Services.AddSingleton(new DiscordSocketConfig
 {
@@ -44,6 +46,7 @@ builder.Services.AddSingleton<ModerationLogHandler>();
 builder.Services.AddSingleton<MessageLogHandler>();
 builder.Services.AddSingleton<CommandLogHandler>();
 builder.Services.AddSingleton<MemberLogHandler>();
+builder.Services.AddSingleton<DirectMessageLogHandler>();
 
 builder.Services.AddHostedService<BotService>();
 
