@@ -51,11 +51,7 @@ public sealed class ModerationLogHandler(
                 embed.AddField("Raison", entry.Reason);
 
             if (await GetExecutorAsync(entry, guild) is { } executor)
-            {
-                var executorMember = guild.GetUser(executor.Id);
-                embed.WithFooter(DisplayName(executorMember, executor),
-                    executorMember?.GetDisplayAvatarUrl() ?? executor.GetDisplayAvatarUrl());
-            }
+                By(embed, executor, guild);
 
             await channel.SendAsync(embed);
         }
