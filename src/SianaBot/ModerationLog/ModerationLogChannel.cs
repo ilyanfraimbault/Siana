@@ -111,6 +111,13 @@ public sealed class ModerationLogChannel(
             .WithThumbnailUrl(member?.GetDisplayAvatarUrl() ?? user?.GetDisplayAvatarUrl());
     }
 
+    /// <summary>Footer commun à tous les logs : l'auteur de l'action, avec son pseudo sur le serveur et son avatar.</summary>
+    public static EmbedBuilder By(EmbedBuilder embed, IUser user, SocketGuild guild)
+    {
+        var member = guild.GetUser(user.Id);
+        return embed.WithFooter(DisplayName(member, user), member?.GetDisplayAvatarUrl() ?? user.GetDisplayAvatarUrl());
+    }
+
     public static string DisplayName(IGuildUser? member, IUser? user) =>
         member?.DisplayName ?? user?.GlobalName ?? user?.Username ?? "Utilisateur inconnu";
 

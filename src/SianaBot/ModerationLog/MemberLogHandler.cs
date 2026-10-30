@@ -49,6 +49,7 @@ public sealed class MemberLogHandler(
             .AddField("Compte créé", $"<t:{created}:D> (<t:{created}:R>)", inline: true)
             .AddField("Membres", guild.MemberCount.ToString(), inline: true)
             .WithCurrentTimestamp();
+        By(embed, member, guild);
         await channel.SendAsync(embed);
     }
 
@@ -57,7 +58,7 @@ public sealed class MemberLogHandler(
         if (channel.Watched(source.Id) is not { } guild)
             return;
 
-        var embed = About(Titled("📤 Membre parti", Color.LightGrey), user, guild, user.Id).WithCurrentTimestamp();
+        var embed = By(About(Titled("📤 Membre parti", Color.LightGrey), user, guild, user.Id), user, guild).WithCurrentTimestamp();
         if (user is SocketGuildUser { JoinedAt: { } joined })
             embed.AddField("Arrivé", $"<t:{joined.ToUnixTimeSeconds()}:R>", inline: true);
         if (user is SocketGuildUser { Roles.Count: > 1 } member)
@@ -70,7 +71,7 @@ public sealed class MemberLogHandler(
         if (after.IsBot || channel.Watched(channel.GuildId) is not { } guild || guild.GetUser(after.Id) is null)
             return;
 
-        var embed = About(Titled("🪪 Profil modifié", Color.Teal), after, guild, after.Id).WithCurrentTimestamp();
+        var embed = By(About(Titled("🪪 Profil modifié", Color.Teal), after, guild, after.Id), after, guild).WithCurrentTimestamp();
         if (before.Username != after.Username)
             embed.AddField("Nom d'utilisateur", $"{before.Username} → {after.Username}");
         if (before.GlobalName != after.GlobalName)

@@ -34,6 +34,7 @@ public sealed class CommandLogHandler(
                 .AddField("Commande", Truncate(Format(command.Data)))
                 .AddField("Salon", $"<#{command.ChannelId}>", inline: true)
                 .WithTimestamp(command.CreatedAt);
+            By(embed, command.User, guild);
             if (!result.IsSuccess)
                 embed.AddField("Résultat", Truncate($"❌ {result.Error} : {result.ErrorReason}"), inline: true);
 

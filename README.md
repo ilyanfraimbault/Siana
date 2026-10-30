@@ -85,7 +85,8 @@ Si `ModerationLog:GuildId` est configuré, le bot publie dans un salon réservé
 - arrivée et départ d'un membre, et changement de profil Discord (nom d'utilisateur, nom affiché, avatar) ;
 - message privé reçu par le bot (réponse à un `/mp`), avec ses pièces jointes.
 
-L'embed montre l'avatar du membre concerné, la raison éventuelle, et en footer l'auteur de l'action avec son avatar.
+L'embed montre l'avatar du membre concerné, la raison éventuelle, et toujours en footer l'auteur de l'action avec son avatar
+(sauf s'il est inconnu : suppression en masse, message supprimé antérieur au démarrage du bot).
 
 Les actions de modération, rôles et pseudos sont lus dans l'audit log du serveur : ils sont journalisés qu'ils soient faits
 depuis Discord, par un autre bot ou par Siana (reaction roles, convention de pseudo). Il faut au bot la permission

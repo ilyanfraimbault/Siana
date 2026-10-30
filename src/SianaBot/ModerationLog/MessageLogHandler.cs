@@ -54,6 +54,7 @@ public sealed class MessageLogHandler(
             .AddField("Avant", before.HasValue ? Content(before.Value) : Unavailable)
             .AddField("Après", Content(after))
             .WithTimestamp(after.EditedTimestamp.Value);
+        By(embed, after.Author, guild);
         await channel.SendAsync(embed);
     }
 
@@ -65,7 +66,7 @@ public sealed class MessageLogHandler(
         var embed = Titled("🗑️ Message supprimé", Color.DarkRed).WithCurrentTimestamp();
         if (message.Value is { } deleted)
         {
-            About(embed, deleted.Author, guild, deleted.Author.Id)
+            By(About(embed, deleted.Author, guild, deleted.Author.Id), deleted.Author, guild)
                 .AddField("Salon", $"<#{channelId}> · envoyé <t:{deleted.Timestamp.ToUnixTimeSeconds()}:R>")
                 .AddField("Contenu", Content(deleted));
         }

@@ -6,7 +6,6 @@ namespace SianaBot.ModerationLog;
 
 /// <summary>
 /// Journalise les messages privés reçus par le bot, pour voir les réponses aux <c>/mp</c>.
-/// On peut répondre au membre avec <c>/mp</c>.
 /// </summary>
 public sealed class DirectMessageLogHandler(
     DiscordSocketClient client,
@@ -34,8 +33,8 @@ public sealed class DirectMessageLogHandler(
         {
             var embed = About(Titled("📩 Message privé reçu", Color.Teal), message.Author, guild, message.Author.Id)
                 .AddField("Contenu", Content(message))
-                .WithFooter($"Répondre : /mp user:{message.Author.Username}")
                 .WithTimestamp(message.Timestamp);
+            By(embed, message.Author, guild);
             // Le bot est le seul à voir la conversation : les liens permettent d'ouvrir les pièces jointes.
             if (message.Attachments.Count > 0)
                 embed.AddField("Pièces jointes", Truncate(string.Join('\n', message.Attachments.Select(a => $"[{a.Filename}]({a.Url})"))));
