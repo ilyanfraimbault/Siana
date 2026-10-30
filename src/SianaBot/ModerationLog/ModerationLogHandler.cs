@@ -1,46 +1,23 @@
 using Discord;
-using Discord.Net;
 using Discord.WebSocket;
-using Microsoft.Extensions.Options;
+using static SianaBot.ModerationLog.ModerationLogChannel;
 
 namespace SianaBot.ModerationLog;
 
-public sealed class ModerationLogOptions
-{
-    public const string Section = "ModerationLog";
-
-    public ulong? GuildId { get; set; }
-
-    /// <summary>Salon de logs. S'il n'est pas renseigné, le bot cherche <see cref="ChannelName"/> et le crée s'il n'existe pas.</summary>
-    public ulong? ChannelId { get; set; }
-
-    public string ChannelName { get; set; } = "logs-moderation";
-
-    /// <summary>La feature (et l'intent Guild Moderation, qui porte les entrées d'audit log) n'est active que si le serveur est configuré.</summary>
-    public bool Enabled => GuildId is not null;
-}
-
 /// <summary>
-/// Journalise dans un salon réservé aux admins les actions de modération (ban, kick, timeout, mute vocal) et les changements
-/// de rôles, d'après l'audit log du serveur : elles sont prises en compte qu'elles viennent de Discord, d'un bot ou de Siana.
+/// Journalise les actions de modération (ban, kick, timeout, mute vocal), les changements de pseudo et de rôles,
+/// d'après l'audit log du serveur : elles sont prises en compte qu'elles viennent de Discord, d'un bot ou de Siana.
 /// </summary>
 public sealed class ModerationLogHandler(
     DiscordSocketClient client,
-    IOptions<ModerationLogOptions> options,
+    ModerationLogChannel channel,
     ILogger<ModerationLogHandler> logger)
 {
-    private volatile ITextChannel? _channel;
-
     public void Attach()
     {
-        if (!options.Value.Enabled)
+        if (channel.GuildId is null)
             return;
 
-        client.Ready += () =>
-        {
-            _ = Task.Run(ResolveChannelAsync);
-            return Task.CompletedTask;
-        };
         // Hors de la gateway : l'envoi (et l'éventuel appel REST pour l'auteur) ne doit pas bloquer la réception des events.
         client.AuditLogCreated += (entry, guild) =>
         {
@@ -49,53 +26,9 @@ public sealed class ModerationLogHandler(
         };
     }
 
-    private async Task ResolveChannelAsync()
-    {
-        var settings = options.Value;
-        var guild = client.GetGuild(settings.GuildId!.Value);
-        if (guild is null)
-        {
-            logger.LogError("Logs de modération : serveur {GuildId} introuvable", settings.GuildId);
-            return;
-        }
-
-        try
-        {
-            _channel = settings.ChannelId is { } channelId
-                ? guild.GetTextChannel(channelId)
-                : guild.TextChannels.FirstOrDefault(c => c.Name == settings.ChannelName) ?? await CreateChannelAsync(guild, settings.ChannelName);
-
-            if (_channel is null)
-                logger.LogError("Logs de modération : salon {ChannelId} introuvable", settings.ChannelId);
-        }
-        catch (HttpException ex)
-        {
-            logger.LogError(ex,
-                "Logs de modération : impossible de créer #{Channel}. Donne au bot « Gérer les salons », ou crée le salon et renseigne ModerationLog:ChannelId",
-                settings.ChannelName);
-        }
-    }
-
-    /// <summary>Salon masqué à @everyone : seuls les administrateurs (qui voient tout) et le bot y ont accès.</summary>
-    private async Task<ITextChannel> CreateChannelAsync(SocketGuild guild, string name)
-    {
-        var channel = await guild.CreateTextChannelAsync(name, props =>
-        {
-            props.Topic = "Actions de modération et changements de rôles, journalisés par le bot.";
-            props.PermissionOverwrites = new List<Overwrite>
-            {
-                new(guild.EveryoneRole.Id, PermissionTarget.Role, new OverwritePermissions(viewChannel: PermValue.Deny)),
-                new(client.CurrentUser.Id, PermissionTarget.User, new OverwritePermissions(
-                    viewChannel: PermValue.Allow, sendMessages: PermValue.Allow, embedLinks: PermValue.Allow)),
-            };
-        });
-        logger.LogInformation("Logs de modération : salon #{Channel} créé ({ChannelId})", channel.Name, channel.Id);
-        return channel;
-    }
-
     private async Task OnAuditLogCreatedAsync(SocketAuditLogEntry entry, SocketGuild guild)
     {
-        if (guild.Id != options.Value.GuildId || _channel is not { } channel)
+        if (channel.Watched(guild.Id) is null)
             return;
 
         var (target, embed) = entry.Data switch
@@ -112,11 +45,7 @@ public sealed class ModerationLogHandler(
 
         try
         {
-            var user = await target.GetOrDownloadAsync();
-            var member = guild.GetUser(target.Id);
-            embed.WithDescription($"<@{target.Id}> · {DisplayName(member, user)} (`{target.Id}`)")
-                .WithThumbnailUrl(member?.GetDisplayAvatarUrl() ?? user?.GetDisplayAvatarUrl())
-                .WithTimestamp(entry.CreatedAt);
+            About(embed, await target.GetOrDownloadAsync(), guild, target.Id).WithTimestamp(entry.CreatedAt);
 
             if (!string.IsNullOrWhiteSpace(entry.Reason))
                 embed.AddField("Raison", entry.Reason);
@@ -128,7 +57,7 @@ public sealed class ModerationLogHandler(
                     executorMember?.GetDisplayAvatarUrl() ?? executor.GetDisplayAvatarUrl());
             }
 
-            await channel.SendMessageAsync(embed: embed.Build(), allowedMentions: AllowedMentions.None);
+            await channel.SendAsync(embed);
         }
         catch (Exception ex)
         {
@@ -136,7 +65,7 @@ public sealed class ModerationLogHandler(
         }
     }
 
-    /// <summary>Timeout et mute / sourdine vocale. Les autres changements (pseudo…) ne sont pas journalisés.</summary>
+    /// <summary>Timeout, mute / sourdine vocale et pseudo sur le serveur.</summary>
     private static EmbedBuilder? DescribeMemberUpdate(SocketMemberUpdateAuditLogData data)
     {
         var (before, after) = (data.Before, data.After);
@@ -151,6 +80,11 @@ public sealed class ModerationLogHandler(
             return muted ? Titled("🔇 Membre rendu muet (vocal)", Color.Orange) : Titled("🔊 Membre n'est plus muet (vocal)", Color.Green);
         if (after.Deaf is { } deafened && deafened != before.Deaf)
             return deafened ? Titled("🔇 Membre mis en sourdine (vocal)", Color.Orange) : Titled("🔊 Membre n'est plus en sourdine (vocal)", Color.Green);
+
+        if (before.Nickname != after.Nickname)
+            return Titled("📝 Pseudo modifié", Color.Teal)
+                .AddField("Avant", before.Nickname ?? "*aucun*", inline: true)
+                .AddField("Après", after.Nickname ?? "*aucun*", inline: true);
 
         return null;
     }
@@ -183,9 +117,4 @@ public sealed class ModerationLogHandler(
         var recent = await guild.GetAuditLogsAsync(10, actionType: entry.Action).FlattenAsync();
         return recent.FirstOrDefault(e => e.Id == entry.Id)?.User;
     }
-
-    private static EmbedBuilder Titled(string title, Color color) => new EmbedBuilder().WithTitle(title).WithColor(color);
-
-    private static string DisplayName(IGuildUser? member, IUser? user) =>
-        member?.DisplayName ?? user?.GlobalName ?? user?.Username ?? "Utilisateur inconnu";
 }

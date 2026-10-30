@@ -16,7 +16,8 @@ services:
       NicknameConvention__ReservedRoleIds__0: "1563171919547605043"
       NicknameConvention__ReservedRoleIds__1: "1563171987512361170"
       # Logs de modération : le bot crée #logs-moderation (visible des seuls admins) s'il n'existe pas.
-      # Nécessite les permissions « Voir les logs du serveur » et « Gérer les salons ».
+      # Nécessite les permissions « Voir les logs du serveur » et « Gérer les salons »,
+      # et les intents Server Members et Message Content activés dans le Developer Portal.
       ModerationLog__GuildId: "1561647745507528847"
     volumes:
       - siana-data:/data

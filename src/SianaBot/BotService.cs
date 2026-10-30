@@ -13,7 +13,11 @@ public sealed class BotService(
     InteractionService interactions,
     ReactionRoleHandler reactionRoles,
     NicknameConventionHandler nicknameConvention,
+    ModerationLogChannel moderationLogChannel,
     ModerationLogHandler moderationLog,
+    MessageLogHandler messageLog,
+    CommandLogHandler commandLog,
+    MemberLogHandler memberLog,
     IServiceProvider services,
     IOptions<DiscordOptions> options,
     ILogger<BotService> logger) : IHostedService
@@ -32,7 +36,11 @@ public sealed class BotService(
         interactions.InteractionExecuted += OnInteractionExecutedAsync;
         reactionRoles.Attach();
         nicknameConvention.Attach();
+        moderationLogChannel.Attach();
         moderationLog.Attach();
+        messageLog.Attach();
+        commandLog.Attach();
+        memberLog.Attach();
 
         await interactions.AddModulesAsync(typeof(BotService).Assembly, services);
         await client.LoginAsync(TokenType.Bot, token);

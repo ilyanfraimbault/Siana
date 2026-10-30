@@ -76,12 +76,22 @@ il faut à la fois un pseudo conforme et une filière pour y accéder ; sinon, s
 
 ### Logs de modération
 
-Si `ModerationLog:GuildId` est configuré, le bot publie dans un salon réservé aux admins un embed pour chaque
-ban, débannissement, kick, exclusion temporaire (timeout), mute ou sourdine vocale, et chaque rôle ajouté ou retiré.
-L'embed montre l'avatar du membre visé, la raison éventuelle, et en footer l'auteur de l'action avec son avatar.
+Si `ModerationLog:GuildId` est configuré, le bot publie dans un salon réservé aux admins un embed pour chaque :
 
-Les actions sont lues dans l'audit log du serveur : elles sont journalisées qu'elles soient faites depuis Discord,
-par un autre bot ou par Siana (reaction roles, convention de pseudo). Il faut au bot la permission **Voir les logs du serveur**.
+- ban, débannissement, kick, exclusion temporaire (timeout), mute ou sourdine vocale ;
+- rôle ajouté ou retiré, et pseudo du serveur modifié ;
+- message modifié (avant / après) ou supprimé (contenu et pièces jointes), y compris les suppressions en masse ;
+- slash command du bot utilisée, avec ses arguments, le salon et l'erreur éventuelle ;
+- arrivée et départ d'un membre, et changement de profil Discord (nom d'utilisateur, nom affiché, avatar).
+
+L'embed montre l'avatar du membre concerné, la raison éventuelle, et en footer l'auteur de l'action avec son avatar.
+
+Les actions de modération, rôles et pseudos sont lus dans l'audit log du serveur : ils sont journalisés qu'ils soient faits
+depuis Discord, par un autre bot ou par Siana (reaction roles, convention de pseudo). Il faut au bot la permission
+**Voir les logs du serveur**, et les intents privilégiés **Server Members** et **Message Content** dans le Developer Portal.
+
+Le contenu d'origine d'un message modifié ou supprimé vient du cache du bot (200 derniers messages par salon) :
+il est inconnu pour les messages envoyés avant son démarrage. Les messages des bots et du salon de logs sont ignorés.
 
 Le salon est `ModerationLog:ChannelId` s'il est renseigné ; sinon le bot cherche `#logs-moderation` (`ModerationLog:ChannelName`)
 et, s'il n'existe pas, le crée masqué à @everyone (seuls les administrateurs et le bot le voient), ce qui demande **Gérer les salons**.

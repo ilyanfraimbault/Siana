@@ -20,15 +20,18 @@ var nicknameConvention = builder.Configuration.GetSection(NicknameConventionOpti
 var intents = GatewayIntents.Guilds | GatewayIntents.GuildMessageReactions;
 if (nicknameConvention?.Enabled == true)
     intents |= GatewayIntents.GuildMembers;
-// GuildBans correspond à l'intent Guild Moderation (non privilégié), qui porte les entrées d'audit log.
+// GuildBans correspond à l'intent Guild Moderation (non privilégié), qui porte les entrées d'audit log. Les logs de messages
+// demandent aussi Message Content, et ceux des arrivées / départs / profils Server Members : deux intents privilégiés.
 var moderationLog = builder.Configuration.GetSection(ModerationLogOptions.Section).Get<ModerationLogOptions>();
 if (moderationLog?.Enabled == true)
-    intents |= GatewayIntents.GuildBans;
+    intents |= GatewayIntents.GuildBans | GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.MessageContent;
 
 builder.Services.AddSingleton(new DiscordSocketConfig
 {
     GatewayIntents = intents,
     LogLevel = LogSeverity.Info,
+    // Messages gardés par salon, pour journaliser le contenu d'origine d'un message modifié ou supprimé.
+    MessageCacheSize = moderationLog?.Enabled == true ? 200 : 0,
 });
 builder.Services.AddSingleton<DiscordSocketClient>();
 builder.Services.AddSingleton<DiscordRestClient>(sp => sp.GetRequiredService<DiscordSocketClient>().Rest);
@@ -36,7 +39,11 @@ builder.Services.AddSingleton(sp => new InteractionService(sp.GetRequiredService
 
 builder.Services.AddSingleton<ReactionRoleHandler>();
 builder.Services.AddSingleton<NicknameConventionHandler>();
+builder.Services.AddSingleton<ModerationLogChannel>();
 builder.Services.AddSingleton<ModerationLogHandler>();
+builder.Services.AddSingleton<MessageLogHandler>();
+builder.Services.AddSingleton<CommandLogHandler>();
+builder.Services.AddSingleton<MemberLogHandler>();
 
 builder.Services.AddHostedService<BotService>();
 
