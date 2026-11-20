@@ -110,11 +110,25 @@ Si les logs de modération sont activés, les MP que les membres envoient au bot
 
 Commandes réservées aux membres ayant le rôle **MEC PUISSANT** (`Memes:RoleName`, ou `Memes:RoleId`) :
 
-- `/meme add fichier:<image, GIF ou vidéo>` — ajoute le fichier à la banque de memes du serveur (10 Mo max, `Memes:MaxFileSize`).
+- `/meme add fichier:<image, GIF ou vidéo> [fichier2 … fichier10]` — ajoute jusqu'à 10 fichiers à la fois à la banque de memes du serveur
+  (10 Mo max chacun, `Memes:MaxFileSize`). Un fichier refusé n'empêche pas l'ajout des autres.
 - `/meme random` — poste un meme tiré au hasard dans `#mecs-puissants` (`Memes:ChannelName`, ou `Memes:ChannelId`).
+
+Les memes sont postés en spoiler (il faut cliquer pour les voir) et anonymes : le bot les poste lui-même, sans dire qui les a ajoutés ni qui les a affichés
+(les réponses aux commandes ne sont visibles que de leur auteur). Seuls les logs de modération, réservés aux admins, gardent la trace des commandes.
+
+Discord ne laisse pas un bot masquer une commande selon un rôle : `/meme` est masquée à tous sauf aux administrateurs.
+Pour que les MEC PUISSANT la voient, un admin doit l'ouvrir au rôle dans **Paramètres du serveur → Intégrations → Siana → `/meme`**
+(ajouter le rôle MEC PUISSANT, en autorisé). Le bot vérifie de toute façon le rôle à chaque commande.
 
 Les fichiers sont copiés dans `data/memes/` (en prod, le volume `/data/memes`), avec leur index `memes.json` :
 les liens des pièces jointes Discord expirent. Le bot doit pouvoir **envoyer des messages** et **joindre des fichiers** dans le salon.
+
+### Aide
+
+`/help` liste les commandes que le membre peut utiliser, selon ses rôles et permissions : les commandes `/meme`
+n'apparaissent qu'aux MEC PUISSANT, `/reactionrole` qu'aux membres pouvant gérer les rôles, `/mp` qu'aux administrateurs.
+La réponse n'est visible que du membre.
 
 ## Administration (CLI)
 
